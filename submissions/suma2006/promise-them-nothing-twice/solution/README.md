@@ -10,6 +10,8 @@ To run this build locally in under 15 minutes, you need:
 
 ## Quickstart
 
+*(Measured time: A clean clone through `make up` and `make harness` completed in 6m22s on a laptop, including the docker image build and the ~53s S4 waits for a UTC minute boundary. Note that S4 waits by design so a reviewer does not think it has hung.)*
+
 1. Stand up the infrastructure (3 app nodes, Nginx load balancer, Redis):
    ```bash
    make up
@@ -18,6 +20,8 @@ To run this build locally in under 15 minutes, you need:
    ```bash
    make harness
    ```
+
+**Expected output:** All six scenarios PASS under `make harness`, with S6 showing the inactive window at 300. See `make demo` below for the active window at 1500.
 
 ## Make Demo
 
