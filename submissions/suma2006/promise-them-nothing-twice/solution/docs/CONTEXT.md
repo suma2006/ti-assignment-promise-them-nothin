@@ -9,25 +9,23 @@ Take-home assignment. See `../../../../../briefs/` for source memos.
 
 ## Current state
 
-Framing complete. `solution/docs/CONSTRAINTS.md` is the only substantive output.
-No code written. No algorithm chosen. No coordination mechanism chosen. No decisions locked.
-
-`solution/app/`, `solution/config/`, `solution/harness/` directories exist and are empty.
+Design complete. `solution/docs/DESIGN.md` documents the architecture, policies, and testable claims.
+No code written yet. `solution/app/`, `solution/config/`, `solution/harness/` directories exist and are empty.
 
 ## Locked decisions
 
-None.
+The following decisions are locked and must not be re-opened by later sessions:
+- **Pair 1 Resolution:** Resolution 4 (The Time-Bound Bridge) is selected.
+- **Algorithm:** Sliding window log.
+- **Coordination:** Redis + atomic Lua scripts.
+- **Clock Source:** Redis internal `TIME` is the sole clock; app node clocks are ignored.
+- **Degraded Mode:** Fail-closed returning `503 Service Unavailable`.
+- **Exception Schema:** A generic, auditable override schema evaluated identically for every customer (no hardcoded bypasses, no test-only clock overrides).
 
 ## Open conflict requiring a decision before design can proceed
 
-**Section 2, Pair 1 of CONSTRAINTS.md:** Northwind's contracted limit is 300 RPM (R16).
-Their nightly batch runs at 800–1200 RPM (R17). The CTO requires a 429 at quota (R1).
-The support lead requires zero 429s during the batch window (R10). These cannot both be
-literally true. The config-driven exception path (R9) exists and is permitted, but
-exercising it is a decision that has not been made. This is the gate for session 02.
+None. The design is locked.
 
 ## Last session
 
-Session 01 — framing only. Produced `solution/docs/CONSTRAINTS.md` (20 requirements,
-1 irreconcilable pair, 6 secondary tensions). See `solution/docs/handoffs/01-handoff.md`
-for full account of what was done, what is unverified, and the next action.
+Session 02 — design phase. Produced `solution/docs/DESIGN.md` resolving the primary constraint conflict and locking the technical architecture. See `solution/docs/handoffs/02-handoff.md` for full account of what was done, what is unverified, and the next action.
