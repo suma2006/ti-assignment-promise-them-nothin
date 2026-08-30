@@ -1,4 +1,4 @@
-.PHONY: up down logs
+.PHONY: up down logs harness
 
 up:
 	docker compose up --build -d
@@ -8,3 +8,8 @@ down:
 
 logs:
 	docker compose logs -f
+
+harness:
+	python3 -m venv .venv-harness
+	.venv-harness/bin/pip install httpx==0.25.1
+	.venv-harness/bin/python harness/runner.py

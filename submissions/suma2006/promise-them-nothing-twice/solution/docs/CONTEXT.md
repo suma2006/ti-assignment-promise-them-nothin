@@ -9,7 +9,7 @@ Take-home assignment. See `../../../../../briefs/` for source memos.
 
 ## Current state
 
-Skeleton API and naive limiter built and running. The environment consists of 3 load-balanced app nodes, Redis, and Nginx. The naive limiter intentionally over-admits (e.g., admitting 400/400 requests against a 300 RPM limit due to uncoordinated node state). The `solution/harness/` directory is still empty.
+Skeleton API and naive limiter built and running. The environment consists of 3 load-balanced app nodes, Redis, and Nginx. The load harness has been built in `solution/harness/` to rigorously measure `max_admitted_in_any_trailing_60s`. The naive limiter has been systematically proven wrong against it.
 
 ## Locked decisions
 
@@ -27,4 +27,4 @@ None. The design is locked.
 
 ## Last session
 
-Session 03 — API skeleton and baseline limiter. Config validation rules were tightened. A deliberately naive memory fixed-window limiter was implemented and demonstrated to over-admit traffic across nodes. See `solution/docs/handoffs/03-handoff.md` for the full record.
+Session 04 — Developed the async Python load harness and established the failure baseline for the naive limiter. Session 05 must beat these numbers to pass: S2 (600), S3 (1459), S4 (600), S5 (200/200/200 per node). See `solution/docs/handoffs/04-handoff.md` for the full record.
