@@ -3,12 +3,17 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from app.config import get_customer_policy
 from app.limiter.memory_fixed_window import MemoryFixedWindowLimiter
+from app.limiter.redis_sliding_window import RedisSlidingWindowLimiter
 
 app = FastAPI()
 node_id = os.getenv("NODE_ID", "unknown-node")
 
-# Instantiate the naive limiter for this session
-limiter = MemoryFixedWindowLimiter()
+# Select the limiter by env var, defaulting to redis
+limiter_type = os.getenv("LIMITER_TYPE", "redis")
+if limiter_type == "memory":
+    limiter = MemoryFixedWindowLimiter()
+else:
+    limiter = RedisSlidingWindowLimiter()
 
 @app.middleware("http")
 async def rate_limit_middleware(request: Request, call_next):
@@ -32,7 +37,17 @@ async def rate_limit_middleware(request: Request, call_next):
             content={"error": "Unknown customer id"}
         )
         
-    allowed, limit, remaining, retry_after = limiter.check(policy)
+    try:
+        allowed, limit, remaining, retry_after = limiter.check(policy)
+    except RuntimeError as e:
+        if str(e) == "Redis unavailable":
+            response = JSONResponse(
+                status_code=503,
+                content={"error": "Service Unavailable"}
+            )
+            response.headers["X-Node-Id"] = node_id
+            return response
+        raise e
     
     if not allowed:
         response = JSONResponse(

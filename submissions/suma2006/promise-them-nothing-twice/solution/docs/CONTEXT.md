@@ -9,7 +9,7 @@ Take-home assignment. See `../../../../../briefs/` for source memos.
 
 ## Current state
 
-Skeleton API and naive limiter built and running. The environment consists of 3 load-balanced app nodes, Redis, and Nginx. The load harness has been built in `solution/harness/` to rigorously measure `max_admitted_in_any_trailing_60s`. The naive limiter has been systematically proven wrong against it.
+The distributed sliding window log rate limiter is fully implemented and running across 3 app nodes, backed by Redis and an atomic Lua script. The environment configuration dynamically handles customer policy overrides. The load harness in `solution/harness/` has been hardened to prevent state pollution and explicitly validate status codes. The distributed limiter successfully passes all scenarios, strictly enforcing correct RPM limits regardless of load balancing or time boundaries.
 
 ## Locked decisions
 
@@ -27,4 +27,4 @@ None. The design is locked.
 
 ## Last session
 
-Session 04 — Developed the async Python load harness and established the failure baseline for the naive limiter. Session 05 must beat these numbers to pass: S2 (600), S3 (1459), S4 (600), S5 (200/200/200 per node). See `solution/docs/handoffs/04-handoff.md` for the full record.
+Session 05 — Hardened the load harness to track explicit status code distributions and dynamically enforce effective bounds. Proved the Redis sliding window limiter successfully constrains burst traffic, node leaks, and boundary straddling to exactly 300 RPM. See `solution/docs/handoffs/05-handoff.md` for the full record and evidence tables.

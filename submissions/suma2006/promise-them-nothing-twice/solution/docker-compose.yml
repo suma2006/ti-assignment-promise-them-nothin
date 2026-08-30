@@ -4,6 +4,8 @@ services:
     build: .
     environment:
       - NODE_ID=app1
+      - LIMITER_TYPE=${LIMITER_TYPE:-redis}
+      - CONFIG_PATH=${CONFIG_PATH:-config/policies.yaml}
     expose:
       - "8000"
 
@@ -11,6 +13,8 @@ services:
     build: .
     environment:
       - NODE_ID=app2
+      - LIMITER_TYPE=${LIMITER_TYPE:-redis}
+      - CONFIG_PATH=${CONFIG_PATH:-config/policies.yaml}
     expose:
       - "8000"
 
@@ -18,6 +22,8 @@ services:
     build: .
     environment:
       - NODE_ID=app3
+      - LIMITER_TYPE=${LIMITER_TYPE:-redis}
+      - CONFIG_PATH=${CONFIG_PATH:-config/policies.yaml}
     expose:
       - "8000"
 

@@ -25,8 +25,8 @@ overrides:
   - override_id: "northwind-batch-bridge"
     customer_id: "cust-nw-demo"
     override_rpm: 1500
-    window_start_utc: "02:00"
-    window_end_utc: "04:00"
+    window_start_utc: "00:00"
+    window_end_utc: "23:59"
     expires_at_timestamp: 1791108808 # Sun Oct  4 10:13:28 AM UTC 2026
     approved_by: "Priya Nair"
     reason: "Batch window protection until contract renewal"

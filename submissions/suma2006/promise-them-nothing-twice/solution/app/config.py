@@ -31,7 +31,9 @@ class PolicyConfig(BaseModel):
                 raise ValueError(f"Customer '{cid}' has tier '{record.tier}' with no default RPM, and no explicit rpm is set.")
         return self
 
-def load_policies(path: str = "config/policies.yaml") -> PolicyConfig:
+def load_policies(path: str = None) -> PolicyConfig:
+    if path is None:
+        path = os.getenv("CONFIG_PATH", "config/policies.yaml")
     try:
         with open(path, "r") as f:
             data = yaml.safe_load(f)
