@@ -38,7 +38,7 @@ The test harness will verify the worst-case number of requests admitted in any t
 
 **Mechanism:** Redis with atomic Lua scripts.
 
-*   **Sole Clock Source:** The rate limiter relies exclusively on the Redis server's internal OS clock (read via the `TIME` command within Lua). App node clocks are completely ignored for counting purposes. This centralized time authority eliminates the risk of distributed clock drift shifting window boundaries (Tension 3d).
+*   **Sole Clock Source:** The rate limiter relies exclusively on the Redis server's internal OS clock (read via the `TIME` command within Lua). App node clocks are completely ignored for both counting purposes and policy evaluation. By passing configuration boundaries to the Lua script and resolving the active limit inside Redis, this centralized time authority eliminates the risk of distributed clock drift shifting window boundaries or causing nodes to enforce different limits at the same absolute moment (Tension 3d).
 *   **Race Condition Prevention:** The read-evaluate-write sequence is entirely encapsulated in a single Lua script. Because Redis executes scripts atomically in its single-threaded event loop, interleaved reads and writes are impossible. The counting is mathematically sound regardless of concurrent load.
 
 ## 4. Degraded Mode (Redis Unreachable)
@@ -66,10 +66,14 @@ To satisfy R9 (config and audit) and R3 (strict fairness), commercial exceptions
 *   **Audit Fields:** `approved_by`, `reason`, `ticket_ref`.
 
 ### Evaluation Path
-There is exactly one code path, evaluated identically for every customer on every request:
-1.  Read base tier RPM.
-2.  If an override record exists for the customer, AND `now` is between `window_start_utc` and `window_end_utc`, AND `now` < `expires_at_timestamp`, apply `override_rpm`.
-3.  Otherwise, apply base tier RPM.
+There is exactly one code path, evaluated identically for every customer on every request. The app node performs no local time checks. It passes the customer's base RPM, and (if an override config exists) the override RPM, daily window bounds (as seconds since midnight), and absolute expiration timestamp directly to the Redis Lua script.
+
+Inside the atomic Lua script:
+1. Read the exact current time via Redis `TIME`.
+2. Check if the current time is before the `expires_at_timestamp`.
+3. Calculate the current time-of-day in UTC (current seconds modulo 86400).
+4. If the time-of-day falls between `window_start` and `window_end`, select the override RPM; otherwise, select the base tier RPM.
+5. Evaluate the rate limit against the selected RPM.
 
 Northwind is simply one row of data in this system. There are no hidden bypasses or `if (customerId === "Northwind")` blocks. 
 
@@ -77,10 +81,15 @@ Northwind is simply one row of data in this system. There are no hidden bypasses
 
 ## 6. Counting Semantics (For Security Reviews)
 
-"Our API strictly enforces your negotiated Request Per Minute (RPM) quota using a centralized, high-precision sliding window algorithm. We do not use fixed one-minute buckets that allow burst doubling at the top of the minute, nor do we approximate counts across disconnected nodes. Every request is recorded atomically and evaluated against the exact number of requests you have made in the trailing 60 seconds across our entire infrastructure. If your limit is 300 RPM, it is mathematically impossible for the system to admit 301 requests within any continuous 60-second span."
+The rate limiter enforces a strict sliding window log algorithm utilizing Redis as a centralized coordination store.
+
+*   **Counting and Evaluation:** Only accepted requests are added to the window log. Rejected requests (HTTP 429) are not counted, do not consume quota, and do not extend the backoff period. The system evaluates the trailing 60 seconds relative to the arrival time of each incoming request.
+*   **Atomicity:** The entire evaluation cycle—fetching the current time, pruning expired requests, evaluating quota policy, and logging new requests—is executed within a single, atomic Redis Lua script. This prevents race conditions and ensures identical enforcement across all distributed app nodes.
+*   **Limit Transitions:** Quota limit changes (e.g., from an override window opening or closing) are applied instantaneously. When a limit increases or decreases at a time boundary, the new limit is immediately enforced against the existing 60-second log of requests. A continuous 60-second span straddling a limit transition may therefore legitimately contain more admitted requests than the lower bound, but never more than the highest limit active during that span.
+*   **Degraded Mode:** If the Redis coordination store becomes unreachable, the rate limiter fails closed, returning HTTP 503 Service Unavailable for all requests to prevent undefended overload of upstream services.
 
 ## 7. Open Questions and Accepted Risks
 
 1.  **The Finite Ceiling Gamble:** The 1500 RPM override for Northwind is still a fixed guess. If their queue is unusually deep and hits 1501 RPM, the `429` triggers their aggressive retry loop (R18) and the batch fails. We cannot guarantee zero 429s without infinite capacity.
-2.  **Boundary Jitter (Tension 3d):** While Redis centralizes time for quota evaluation, the app nodes evaluate the *config window* (e.g., is it 02:00 UTC yet?) locally before passing the target RPM to Redis. If Northwind's batch fires precisely on the second, and app node drift causes an evaluation at `01:59:59.9`, the request is checked against the 300 RPM limit. This yields a `429`, instantly triggering the retry loop just as the window opens.
+2.  **Boundary Jitter (Tension 3d):** By moving the policy evaluation inside the Redis Lua script, we have eliminated app node clock drift as a risk factor for quota selection. However, network transit latency remains. If Northwind's batch scheduler fires exactly at 02:00:00 UTC but network transit causes the request to hit the Redis engine at 01:59:59.9, it will be evaluated against the base 300 RPM limit, potentially triggering a 429 just before the window officially opens.
 3.  **Commercial Problems as Technical Solutions:** We are accepting the complexity of scheduling and TTL evaluation in a V1 rate limiter merely to bridge a commercial dispute until a contract renewal.

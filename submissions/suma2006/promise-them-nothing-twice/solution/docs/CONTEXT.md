@@ -9,8 +9,7 @@ Take-home assignment. See `../../../../../briefs/` for source memos.
 
 ## Current state
 
-Design complete. `solution/docs/DESIGN.md` documents the architecture, policies, and testable claims.
-No code written yet. `solution/app/`, `solution/config/`, `solution/harness/` directories exist and are empty.
+Skeleton API and naive limiter built and running. The environment consists of 3 load-balanced app nodes, Redis, and Nginx. The naive limiter intentionally over-admits (e.g., admitting 400/400 requests against a 300 RPM limit due to uncoordinated node state). The `solution/harness/` directory is still empty.
 
 ## Locked decisions
 
@@ -28,4 +27,4 @@ None. The design is locked.
 
 ## Last session
 
-Session 02 — design phase. Produced `solution/docs/DESIGN.md` resolving the primary constraint conflict and locking the technical architecture. See `solution/docs/handoffs/02-handoff.md` for full account of what was done, what is unverified, and the next action.
+Session 03 — API skeleton and baseline limiter. Config validation rules were tightened. A deliberately naive memory fixed-window limiter was implemented and demonstrated to over-admit traffic across nodes. See `solution/docs/handoffs/03-handoff.md` for the full record.
